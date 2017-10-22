@@ -29,6 +29,7 @@ TYPE WeaponType
     aim AS INTEGER
     heat AS INTEGER
     maxHeat AS INTEGER
+    stall AS INTEGER
 END TYPE
 
 TYPE TerrainType
@@ -85,6 +86,7 @@ DIM SHARED Weapon AS WeaponType
 Weapon.aim = 6
 Weapon.heat = 0
 Weapon.maxHeat = 32
+Weapon.stall = 0
 REM =========================
 
 DO: _LIMIT 128
@@ -158,14 +160,20 @@ SUB RenderScreen
         temp& = Player.sprNormal
     END IF
 
-    IF _MOUSEBUTTON(1) THEN
+    IF _MOUSEBUTTON(1) AND Weapon.stall = 0 THEN
         WeaponAim = Weapon.aim + Weapon.heat
-        IF Weapon.heat < Weapon.maxHeat THEN Weapon.heat = Weapon.heat + 1
+        IF Weapon.heat < Weapon.maxHeat THEN
+            Weapon.heat = Weapon.heat + 1
+        ELSE
+            Weapon.stall = 1
+        END IF
         LINE (Player.x, Player.y)-(-WeaponAim / 2 + _MOUSEX + RND * WeaponAim, -WeaponAim / 2 + _MOUSEY + RND * WeaponAim), _RGB(255, 255, 255)
     ELSEIF Weapon.heat > 0 THEN Weapon.heat = Weapon.heat - 1
     END IF
 
-    _PUTIMAGE (Player.x - Player.size, Player.y), temp&
+    IF Weapon.heat = 0 AND Weapon.stall > 0 THEN Weapon.stall = 0
+
+    _PUTIMAGE (Player.x - Player.size, Player.y - Player.size), temp&
 END SUB
 
 REM =========================
