@@ -10,6 +10,8 @@ TYPE AppSettingsType
     halfh AS INTEGER
     gameSpeed AS INTEGER
     spriteSize AS INTEGER
+    rows AS INTEGER
+    cols AS INTEGER
 END TYPE
 
 TYPE VehicleType
@@ -21,6 +23,12 @@ TYPE VehicleType
     sprNormal AS LONG
     sprRight AS LONG
     sprShadow AS LONG
+END TYPE
+
+TYPE WeaponType
+    aim AS INTEGER
+    heat AS INTEGER
+    maxHeat AS INTEGER
 END TYPE
 
 TYPE TerrainType
@@ -43,6 +51,8 @@ AppSettings.halfw = AppSettings.w / 2
 AppSettings.halfh = AppSettings.h / 2
 AppSettings.gameSpeed = 1
 AppSettings.spriteSize = 32
+AppSettings.rows = 10
+AppSettings.cols = 8
 
 DIM Display AS LONG
 Display = _NEWIMAGE(AppSettings.w, AppSettings.h, 32)
@@ -65,12 +75,16 @@ TerrainSprites.road = _LOADIMAGE("assets/road_normal.png", 32)
 TerrainSprites.band_left = _LOADIMAGE("assets/road_band_left.png", 32)
 TerrainSprites.band_right = _LOADIMAGE("assets/road_band_right.png", 32)
 
-DIM SHARED Terrain(10, 8) AS TerrainType
+DIM SHARED Terrain(AppSettings.rows, AppSettings.cols) AS TerrainType
 InitMap
 
 DIM SHARED TerrainShift AS INTEGER
 TerrainShift = 0
 
+DIM SHARED Weapon AS WeaponType
+Weapon.aim = 6
+Weapon.heat = 0
+Weapon.maxHeat = 32
 REM =========================
 
 DO: _LIMIT 128
@@ -104,8 +118,8 @@ SUB DrawMouse
 END SUB
 
 SUB InitMap
-    FOR row = 0 TO 10
-        FOR z = 0 TO 7
+    FOR row = 0 TO AppSettings.rows
+        FOR z = 0 TO AppSettings.cols
             IF row > 2 AND row < 7 THEN
                 t& = TerrainSprites.road
             ELSEIF row = 2 THEN
@@ -123,16 +137,17 @@ END SUB
 SUB RenderScreen
     CLS
 
-    FOR row = 0 TO 10
-        FOR z = 0 TO 7
-            _PUTIMAGE (row * 32, z * 32 + TerrainShift), Terrain(row, z).spr
+    FOR row = 0 TO AppSettings.rows
+        FOR z = 0 TO AppSettings.cols
+            _PUTIMAGE (row * 32, (z * 32 + TerrainShift) - AppSettings.spriteSize), Terrain(row, z).spr
         NEXT
     NEXT
 
-    TerrainShift = TerrainShift + 1
+    TerrainShift = TerrainShift + AppSettings.gameSpeed
     IF TerrainShift > AppSettings.spriteSize THEN
         TerrainShift = 0
     END IF
+
 
     IF Player.direction < 0 THEN
         temp& = Player.sprLeft
@@ -141,6 +156,13 @@ SUB RenderScreen
         temp& = Player.sprRight
     ELSE
         temp& = Player.sprNormal
+    END IF
+
+    IF _MOUSEBUTTON(1) THEN
+        WeaponAim = Weapon.aim + Weapon.heat
+        IF Weapon.heat < Weapon.maxHeat THEN Weapon.heat = Weapon.heat + 1
+        LINE (Player.x, Player.y)-(-WeaponAim / 2 + _MOUSEX + RND * WeaponAim, -WeaponAim / 2 + _MOUSEY + RND * WeaponAim), _RGB(255, 255, 255)
+    ELSEIF Weapon.heat > 0 THEN Weapon.heat = Weapon.heat - 1
     END IF
 
     _PUTIMAGE (Player.x - Player.size, Player.y), temp&
