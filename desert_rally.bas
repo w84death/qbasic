@@ -43,6 +43,7 @@ TYPE TerrainSpritesType
     road AS LONG
     band_left AS LONG
     band_right AS LONG
+    hole AS LONG
 END TYPE
 
 DIM SHARED AppSettings AS AppSettingsType
@@ -75,8 +76,10 @@ TerrainSprites.grass = _LOADIMAGE("assets/grass.png", 32)
 TerrainSprites.road = _LOADIMAGE("assets/road_normal.png", 32)
 TerrainSprites.band_left = _LOADIMAGE("assets/road_band_left.png", 32)
 TerrainSprites.band_right = _LOADIMAGE("assets/road_band_right.png", 32)
+TerrainSprites.hole = _LOADIMAGE("assets/road_hole.png", 32)
 
-DIM SHARED Terrain(AppSettings.rows, AppSettings.cols) AS TerrainType
+
+DIM SHARED Terrain(AppSettings.cols, AppSettings.rows) AS TerrainType
 InitMap
 
 DIM SHARED TerrainShift AS INTEGER
@@ -120,10 +123,14 @@ SUB DrawMouse
 END SUB
 
 SUB InitMap
-    FOR row = 0 TO AppSettings.rows
-        FOR z = 0 TO AppSettings.cols
+    FOR z = 0 TO AppSettings.cols
+        FOR row = 0 TO AppSettings.rows
             IF row > 2 AND row < 7 THEN
-                t& = TerrainSprites.road
+                IF RND * 10 < 2 THEN
+                    t& = TerrainSprites.hole
+                ELSE
+                    t& = TerrainSprites.road
+                END IF
             ELSEIF row = 2 THEN
                 t& = TerrainSprites.band_left
             ELSEIF row = 7 THEN
@@ -131,23 +138,40 @@ SUB InitMap
             ELSE
                 t& = TerrainSprites.grass
             END IF
-            Terrain(row, z).spr = t&
+            Terrain(z, row).spr = t&
         NEXT
     NEXT
+END SUB
+
+SUB ShiftMap
+    DIM temp(AppSettings.rows) AS TerrainType
+    FOR row = 0 TO AppSettings.rows
+        temp(row) = Terrain(AppSettings.cols, row)
+    NEXT
+    FOR z = AppSettings.cols TO 1 STEP -1
+        FOR row = 0 TO AppSettings.rows
+            Terrain(z, row) = Terrain(z - 1, row)
+        NEXT
+    NEXT
+    FOR row = 0 TO AppSettings.rows
+        Terrain(0, row) = temp(row)
+    NEXT
+
 END SUB
 
 SUB RenderScreen
     CLS
 
-    FOR row = 0 TO AppSettings.rows
-        FOR z = 0 TO AppSettings.cols
-            _PUTIMAGE (row * 32, (z * 32 + TerrainShift) - AppSettings.spriteSize), Terrain(row, z).spr
+    FOR y = 0 TO AppSettings.cols
+        FOR x = 0 TO AppSettings.rows
+            _PUTIMAGE (x * 32, (y * 32 + TerrainShif) - AppSettings.spriteSize), Terrain(1, 1).spr
         NEXT
     NEXT
 
     TerrainShift = TerrainShift + AppSettings.gameSpeed
     IF TerrainShift > AppSettings.spriteSize THEN
         TerrainShift = 0
+    ShiftMap
     END IF
 
 
